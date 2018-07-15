@@ -1,0 +1,6 @@
+[submodule "thirdparty/picojson"]
+	path = thirdparty/picojson
+	url = https://github.com/kazuho/picojson.git
+[submodule "thirdparty/msgpack-c"]
+	path = thirdparty/msgpack-c
+	url = https://github.com/msgpack/msgpack-c.git
