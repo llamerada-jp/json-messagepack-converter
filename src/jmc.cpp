@@ -31,6 +31,7 @@ void (*on_error)(const char*) = nullptr;
 
 // Methods.
 std::string mp_to_json(const std::string& mp_str);
+picojson::value pack_json(msgpack::object obj);
 std::string json_to_mp(const std::string& json_str);
 void pack_mp(msgpack::packer<msgpack::sbuffer>& pk, const picojson::value& json);
 std::string mem_to_str(const uint8_t* mem);
@@ -41,7 +42,10 @@ uint8_t* str_to_mem(const std::string& str);
 #ifdef __cplusplus
 extern "C" {
 #endif
-  // Methods.
+  // Methods for importing.
+  extern char* to_base64(const uint8_t* src_addr, uint32_t src_size, uint32_t* dst_size);
+
+  // Methods for exporting.
   EMSCRIPTEN_KEEPALIVE void set_on_error(void (*cb)(const char*));
   EMSCRIPTEN_KEEPALIVE uint8_t* to_json(const uint8_t* mp_addr);
   EMSCRIPTEN_KEEPALIVE uint8_t* to_mp(const uint8_t* json_addr);
@@ -67,8 +71,78 @@ uint8_t* to_mp(const uint8_t* json_addr) {
 
 namespace jmc {
 std::string mp_to_json(const std::string& mp_str) {
-  //@fixme
-  return "";
+  // Decode MessagePack from string.
+  msgpack::object_handle handle = msgpack::unpack(mp_str.data(), mp_str.size());
+  msgpack::object obj = handle.get();
+
+  picojson::value json = pack_json(obj);
+  return json.to_str();
+}
+
+picojson::value pack_json(msgpack::object obj) {
+  switch (obj.type) {
+    case msgpack::type::NIL: {
+      return picojson::value();
+    } break;
+
+    case msgpack::type::BOOLEAN: {
+      return picojson::value(obj.via.boolean);
+    } break;
+
+    case msgpack::type::POSITIVE_INTEGER: {
+      return picojson::value(static_cast<double>(obj.via.i64));
+    } break;
+
+    case msgpack::type::NEGATIVE_INTEGER: {
+      return picojson::value(static_cast<double>(obj.via.u64));
+    } break;
+
+    case msgpack::type::FLOAT32:
+    case msgpack::type::FLOAT64: {
+      return picojson::value(obj.via.f64);
+    } break;
+
+    case msgpack::type::STR: {
+      return picojson::value(std::string(obj.via.str.ptr, obj.via.str.size));
+    } break;
+
+    case msgpack::type::BIN: {
+      char* str_addr;
+      uint32_t str_size;
+      str_addr = to_base64(reinterpret_cast<const uint8_t*>(obj.via.bin.ptr), obj.via.bin.size, &str_size);
+      std::string base64(str_addr, str_size);
+      free(str_addr);
+      return picojson::value(base64);
+    } break;
+
+    case msgpack::type::ARRAY: {
+      picojson::array json_array;
+      for (int idx = 0; idx < obj.via.array.size; idx++) {
+        json_array.push_back(pack_json(*(obj.via.array.ptr + idx)));
+      }
+      return picojson::value(json_array);
+    } break;
+
+    case msgpack::type::MAP: {
+      picojson::object json_map;
+      for (int idx = 0; idx < obj.via.map.size; idx++) {
+        msgpack::object_kv* kv = obj.via.map.ptr + idx;
+        picojson::value key = pack_json(kv->key);
+        picojson::value val = pack_json(kv->val);
+        if (key.is<std::string>()) {
+          json_map.insert(std::make_pair(key.get<std::string>(), val));
+        } else {
+          on_error("ignore key");
+        }
+      }
+      return picojson::value(json_map);
+    } break;
+
+    default: {
+      on_error("unsupported type");
+      return picojson::value();
+    } break;
+  }
 }
 
 std::string json_to_mp(const std::string& json_str) {
