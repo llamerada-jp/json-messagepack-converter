@@ -3,132 +3,50 @@
   <head>
     <meta charset="utf-8">
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/css/bootstrap.min.css" integrity="sha384-Smlep5jCw/wG7hdkwQ/Z5nLIefveQRIY9nfy6xoR1uRYBtpZgI6339F5dgvm/e9B" crossorigin="anonymous">
     <title>Emscripten-Generated Code</title>
     <style>
+      html {
+        height: 100%;
+      }
+
       body {
-        font-family: arial;
+        height: 100%;
         margin: 0;
-        padding: none;
+      }
+
+      #bg {
+        height: 100%;
       }
     </style>
   </head>
   <body>
-    <textarea id="input" rows="8"></textarea>
-    <button onclick="convert();">Convert</button>
-    <div id="message"></div>
-    <div id="output"></div>
+    <div class="bg-light" id="bg">
+      <div class="container">
+        <div class="py-5 text-center">
+          <h2>JSON MessagePack converter.</h2>
+          <p><a href="https://github.com/llamerada-jp/json-messagepack-converter">Link to source code.</a></p>
+        </div>
 
-    <script type='text/javascript'>
-      var Module = {
-        preRun: [],
-        /**
-         */
-        postRun: [initialize],
-        print: (function() {
-          return function(text) {
-            if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-            // These replacements are necessary if you render to raw HTML
-            //text = text.replace(/&/g, "&amp;");
-            //text = text.replace(/</g, "&lt;");
-            //text = text.replace(/>/g, "&gt;");
-            //text = text.replace('\n', '<br>', 'g');
-            console.log(text);
-          };
-        })(),
-
-        printErr: function(text) {
-          if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-          console.error(text);
-        },
-
-        setStatus: function(text) {
-          console.log(text);
-        },
-
-        totalDependencies: 0,
-
-        monitorRunDependencies: function(left) {
-
-          this.totalDependencies = Math.max(this.totalDependencies, left);
-          Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' +
-                                  this.totalDependencies + ')' : 'All downloads complete.');
-        }
-      };
-
-      window.onerror = function(event) {
-        // TODO: do not warn on ok events like simulating an infinite loop or exitStatus
-        Module.setStatus('Exception thrown, see JavaScript console');
-        Module.setStatus = function(text) {
-          if (text) Module.printErr('[post-exception status] ' + text);
-        };
-      };
-
-      function initialize() {
-        setOnError(function(msg) {
-          var divMessage = document.getElementById('message');
-          msg = msg.replace('\n', '<br/>', 'g');
-          divMessage.innerHTML = divMessage.innerHTML + '<br/>' + msg;
-        });
-      }
-
-      function setOnError(cb) {
-        /**
-         */
-        function cbWrap(msgPtr) {
-          var msgStr = Pointer_stringify(msgPtr);
-          cb(msgStr);
-        }
-
-        /**
-         * addFunctionを用いてJavaScriptの関数から関数ポインタのアドレスを取得する。
-         * addFunctionを用いると、ポインタ領域を消費するので、同じ関数を何度も登録してはならない。
-         * 使い終わったあとにremoveFunctionを呼び出してもよいが、領域にnullが設定されるのみで、
-         * 領域が再利用可能になっていないようだ。
-         * 正しく使っても不足する場合、emccのRESERVED_FUNCTION_POINTERSオプションで領域のサイズ指定可能。
-         */
-        var fncPtr = addFunction(cbWrap, 'vi');
-
-        /**
-         */
-        ccall('set_on_error', 'null', ['number'], [fncPtr]);
-      }
-
-      function toJson(mp) {
-        console.error('fixme');
-      }
-
-      function toMp(jsonStr) {
-        var jsonSize = lengthBytesUTF8(jsonStr);
-        var jsonPtr = Module._malloc(4 + jsonSize + 1);
-        setValue(jsonPtr, jsonSize, 'i32');
-        stringToUTF8(jsonStr, jsonPtr + 4, jsonSize + 1);
-
-        var mpPtr = ccall('to_mp', 'number', ['number'], [jsonPtr]);
-
-        var mpSize = getValue(mpPtr, 'i32');
-        var mpArray = Module.buffer.slice(mpPtr + 4, mpPtr + 4 + mpSize);
-
-        Module._free(jsonPtr);
-        Module._free(mpPtr);
-
-        return mpArray;
-      }
-
-      function convert() {
-        document.getElementById('message').innerHTML = '';
-
-        var jsonStr = document.getElementById('input').value;
-        var mpArray = toMp(jsonStr);
-
-        var mpArray8 = new Uint8Array(mpArray);
-        var mpText = '';
-        for (idx = 0; idx < mpArray8.length; idx++) {
-          mpText += ' ' + ('0' + mpArray8[idx].toString(16)).slice(-2);
-        }
-        document.getElementById('output').innerHTML = mpText;
-      }
-
-    </script>
+        <div class="form-group">
+          <label for="File">Choose source file or input JSON on the below text area.</label>
+          <input class="form-control" type="file" id="file">
+        </div>
+        <div class="form-group">
+          <textarea class="form-control" id="io" rows="8">You can input only JSON format here.</textarea>
+        </div>
+        <div class="form-group">
+          <button class="btn btn-primary" onclick="convert();">Convert</button>
+        </div>
+        <div>
+          <p id="message"></p>
+        </div>
+      </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js" integrity="sha384-o+RDsa0aLu++PJvFqy8fFScvbHFLtbvScb8AjopnFD+iEQ7wo/CG0xlczd+2O/em" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="jmc0.js"></script>
     <script async type="text/javascript" src="jmc.js"></script>
   </body>
 </html>
