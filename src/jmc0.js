@@ -3,12 +3,10 @@ var Module = {
   /**
    */
   postRun: [initialize],
-  print: (function() {
-    return function(text) {
-      if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
-      console.log(text);
-    };
-  })(),
+  print: function(text) {
+    if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
+    console.log(text);
+  },
 
   printErr: function(text) {
     if (arguments.length > 1) text = Array.prototype.slice.call(arguments).join(' ');
@@ -22,7 +20,6 @@ var Module = {
   totalDependencies: 0,
 
   monitorRunDependencies: function(left) {
-
     this.totalDependencies = Math.max(this.totalDependencies, left);
     Module.setStatus(left ? 'Preparing... (' + (this.totalDependencies-left) + '/' +
                             this.totalDependencies + ')' : 'All downloads complete.');
@@ -33,16 +30,15 @@ window.onerror = function(event) {
   // TODO: do not warn on ok events like simulating an infinite loop or exitStatus
   Module.setStatus('Exception thrown, see JavaScript console');
   Module.setStatus = function(text) {
-    if (text) Module.printErr('[post-exception status] ' + text);
+    if (text) {
+      Module.printErr('[post-exception status] ' + text);
+    }
   };
 };
 
 function initialize() {
-  setOnError(function(msg) {
-    var divMessage = document.getElementById('message');
-    msg = msg.replace('\n', '<br/>', 'g');
-    divMessage.innerHTML = divMessage.innerHTML + '<br/>' + msg;
-  });
+  setOnError(printLog);
+  setFileChangeEvent();
 }
 
 function setOnError(cb) {
@@ -67,8 +63,62 @@ function setOnError(cb) {
   ccall('set_on_error', 'null', ['number'], [fncPtr]);
 }
 
+function matchExt(fname, exts) {
+  fname = fname.toLowerCase();
+  for (var idx = 0; idx < exts.length; idx++) {
+    var ext = '.' + exts[idx].toLowerCase();
+    if ((fname.lastIndexOf(ext) + ext.length === fname.length) &&
+        (ext.length <= fname.length)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function setFileChangeEvent() {
+  var fileForm = document.getElementById('file');
+  fileForm.addEventListener('change', function(e) {
+    var result = e.target.files[0];
+    var fname = result.name;
+    var reader = new FileReader();
+
+    if (matchExt(fname, ['json', 'js', 'txt'])) {
+      // JSONのときはテキストとして読み出して、バイナリファイルとして保存する。
+      reader.readAsText(result);
+      reader.addEventListener('load', function() {
+        var mpBuffer = toMp(reader.result);
+        saveArrayBuffer(mpBuffer, 'application/octe-binary', 'output.msg');
+      });
+      
+    } else {
+      // MessagePackのときはArrayBufferとして読み出して、テキストファイルとして保存する。
+      reader.readAsArrayBuffer(result);
+      reader.addEventListener('load', function() {
+        var jsBuffer = toJson(reader.result);
+        saveArrayBuffer(jsBuffer, 'text/json', 'output.json');
+      });
+    }
+  });
+}
+
 function toJson(mp) {
-  console.error('fixme');
+  var mpSize = mp.length;
+  var mpPtr = Module._malloc(4 + mpSize + 1);
+  setValue(mpPtr, mpSize, 'i32');
+  var mpU8 = new Uint8Array(mp);
+  for (var idx = 0; idx < mpSize; idx++) {
+    HEAPU8[mpPtr + 4 + idx] = mpU8[idx];
+  }
+
+  var jsonPtr = ccall('to_json', 'number', ['number'], [mpPtr]);
+
+  var jsonSize = getValue(jsonPtr, 'i32');
+  var jsonArray = Module.buffer.slice(jsonPtr + 4, jsonPtr + 4 + jsonSize);
+
+  Module._free(mpPtr);
+  Module._free(jsonPtr);
+
+  return jsonArray;
 }
 
 function toMp(jsonStr) {
@@ -88,17 +138,29 @@ function toMp(jsonStr) {
   return mpArray;
 }
 
-function convert() {
+function clearLog() {
   document.getElementById('message').innerHTML = '';
+}
 
-  var jsonStr = document.getElementById('input').value;
-  var mpArray = toMp(jsonStr);
+function printLog(str) {
+  var message = document.getElementById('message');
+  str = str.replace('\n', '<br/>', 'g');
+  message.innerHTML = message.innerHTML + '<br/>' + str;
+}
 
-  var mpArray8 = new Uint8Array(mpArray);
-  var mpText = '';
-  for (idx = 0; idx < mpArray8.length; idx++) {
-    mpText += ' ' + ('0' + mpArray8[idx].toString(16)).slice(-2);
-  }
-  document.getElementById('output').innerHTML = mpText;
+function saveArrayBuffer(buffer, type, fname) {
+  var blob = new Blob([buffer], {type: type});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.target = '_blank';
+  a.download = fname;
+  a.click();
+}
+
+function convert() {
+  clearLog();
+  var jsonStr = document.getElementById('io').value;
+  var mpBuffer = toMp(jsonStr);
+  saveArrayBuffer(mpBuffer, 'application/octe-binary', 'output.msg');
 }
 
