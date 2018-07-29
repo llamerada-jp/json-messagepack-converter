@@ -1,1 +1,54 @@
-../src/jmc.html
+<!doctype html>
+<html lang="en-us">
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/css/bootstrap.min.css" integrity="sha384-Smlep5jCw/wG7hdkwQ/Z5nLIefveQRIY9nfy6xoR1uRYBtpZgI6339F5dgvm/e9B" crossorigin="anonymous">
+    <title>Emscripten-Generated Code</title>
+    <style>
+      html {
+        height: 100%;
+      }
+
+      body {
+        height: 100%;
+        margin: 0;
+      }
+
+      #bg {
+        height: 100%;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="bg-light" id="bg">
+      <div class="container">
+        <div class="py-5 text-center">
+          <h2>JSON MessagePack converter.</h2>
+          <p><a href="https://github.com/llamerada-jp/json-messagepack-converter">Link to source code.</a></p>
+        </div>
+
+        <div class="form-group">
+          <label for="file">Choose source file or input JSON on the below text area.</label>
+          <input class="form-control" type="file" id="file">
+        </div>
+        <div class="form-group">
+          <textarea class="form-control" id="io" rows="8">You can input only JSON format here.</textarea>
+        </div>
+        <div class="form-group">
+          <button class="btn btn-primary" onclick="convert();">Convert</button>
+        </div>
+        <div>
+          <p id="message"></p>
+        </div>
+      </div>
+    </div>
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.2/js/bootstrap.min.js" integrity="sha384-o+RDsa0aLu++PJvFqy8fFScvbHFLtbvScb8AjopnFD+iEQ7wo/CG0xlczd+2O/em" crossorigin="anonymous"></script>
+    <script type="text/javascript" src="jmc0.js"></script>
+    <script async type="text/javascript" src="jmc.js"></script>
+  </body>
+</html>
+
+

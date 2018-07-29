@@ -20,7 +20,6 @@ make -j
 make install
 
 mkdir -p ${DOCS_PATH}
-cd ${DOCS_PATH}
-ln -s ../src/jmc.html .
-ln -s ../src/jmc0.js .
+cp -p ${ROOT_PATH}/src/jmc.html ${DOCS_PATH}
+cp -p ${ROOT_PATH}/src/jmc0.js ${DOCS_PATH}
 cp -p ${BUILD_PATH}/jmc/jmc.wasm ${DOCS_PATH}
