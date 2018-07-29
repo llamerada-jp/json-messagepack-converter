@@ -5,7 +5,7 @@ set -eu
 cd `dirname $0`
 readonly ROOT_PATH="`pwd`"
 readonly BUILD_PATH=${ROOT_PATH}/build
-readonly WWW_PATH=${ROOT_PATH}/www
+readonly DOCS_PATH=${ROOT_PATH}/docs
 
 # msgpack for C/C++
 mkdir -p ${BUILD_PATH}/msgpack
@@ -19,8 +19,8 @@ emcmake cmake ${ROOT_PATH}
 make -j
 make install
 
-mkdir -p ${WWW_PATH}
-cd ${WWW_PATH}
+mkdir -p ${DOCS_PATH}
+cd ${DOCS_PATH}
 ln -s ../src/jmc.html .
 ln -s ../src/jmc0.js .
-cp -p ${BUILD_PATH}/jmc/jmc.wasm ${WWW_PATH}
+cp -p ${BUILD_PATH}/jmc/jmc.wasm ${DOCS_PATH}
