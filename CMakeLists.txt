@@ -16,3 +16,9 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} --pre-js ${PROJECT_SOURCE_DIR}/src/jmc1.
 
 add_executable(jmc src/jmc.cpp)
 target_link_libraries(jmc msgpackc)
+
+install(TARGETS jmc
+  RUNTIME DESTINATION ${PROJECT_SOURCE_DIR}/www
+  LIBRARY DESTINATION ${PROJECT_SOURCE_DIR}/www
+  ARCHIVE DESTINATION ${PROJECT_SOURCE_DIR}/www)
+  
